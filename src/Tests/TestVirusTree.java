@@ -6,8 +6,6 @@ import nr.ran.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.neuroph.core.NeuralNetwork;
-import org.neuroph.core.data.DataSet;
 
 import static java.lang.StrictMath.log10;
 import static org.junit.jupiter.api.Assertions.*;
