@@ -493,11 +493,8 @@ public class MLE {
             Binom[N][K] = result.doubleValue();
             return result.doubleValue(); //if small enough, just return
         }
-        String firstDigits = str.substring(0, tolerance); //otherwise only hold onto significant digits
-        int numDigits = str.length() - tolerance; //count how many digits there are after firstDigits
-        double sci = Double.parseDouble(firstDigits) * Math.pow(10, numDigits); //convert to scientific notation
-        Binom[N][K] = sci;
-        return sci;
+        Binom[N][K] = result.doubleValue();
+        return result.doubleValue();
     }
 
     //Below this point are functions which are not used in the main body of the
