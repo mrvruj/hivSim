@@ -488,11 +488,6 @@ public class MLE {
             result = result.multiply(BigInteger.valueOf(N-k));
             result = result.divide(  BigInteger.valueOf(k+1));
         }
-        String str = result.toString();
-        if (str.length() <= tolerance) {
-            Binom[N][K] = result.doubleValue();
-            return result.doubleValue(); //if small enough, just return
-        }
         Binom[N][K] = result.doubleValue();
         return result.doubleValue();
     }
