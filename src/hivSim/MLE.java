@@ -1,6 +1,9 @@
 package hivSim;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.*;
 
 import static hivSim.CSV.rValues;
@@ -11,15 +14,19 @@ import static nr.ran.NRUtil.*;
  * Contains methods related to calculating the maximum likelihood estimate and
  * standard deviations of the basic reproduction number. Contains a global
  * class variable 'tolerance' which controls the number of significant figures
- * desired; the default value is 9. The method setTolerance() in CSV, which
- * calls MLE.setTolerance() and MOM.setTolerance(), should be used to set
- * this value in the simulation.
+ * desired; the default value is 9. The method setTolerance() in CSV
+ * should be used to set this value in the simulation.
  */
 
 public class MLE {
     private static int tolerance;
     private static double[][] Binom;
     private static double[][][] Skmn;
+    private static MathContext mc;
+
+    public static void setMC(){
+        mc = new MathContext(tolerance, RoundingMode.HALF_DOWN);
+    }
 
     /**
      * Generates a lookup table with default values equal to -1.
@@ -28,17 +35,17 @@ public class MLE {
      */
     public static void populateBinom(int n){
         Binom = new double[n+1][n+1];
-        for (int i=1; i<=n; i++){
-            for (int j = 1; j <= n; j++)
+        for (int i=0; i<=n; i++){
+            for (int j = 0; j <= n; j++)
                 Binom[i][j] = -1;
         }
     }
 
     public static void populateSkmn(int k, int m, int n) {
         Skmn = new double[k+1][m+1][n+1];
-        for (int a = 1; a <= k; a++) {
-            for (int b = 1; b <= m; b++)
-                for (int c = 1; c <= n; c++) {
+        for (int a = 0; a <= k; a++) {
+            for (int b = 0; b <= m; b++)
+                for (int c = 0; c <= n; c++) {
                     Skmn[a][b][c] = -1;
                 }
         }
@@ -329,7 +336,7 @@ public class MLE {
      * @see <img src="./doc-files/aTilda.png"/>
      * @see <img src="./doc-files/aTilda1.png"/>
      */
-    public static double aTilda(double r, int M, int m){ //TODO aTilda(r0, M >~ 10^2, m >> 1) is closer to 0 than our tolerance --> sHat goes to 0 and lnL(r) equation blows up
+    public static double aTilda(double r, int M, int m){
         if (m > floor(M)/2.0){throw new IllegalArgumentException("0 < m <= floor(M/2)");}
         if (M%2 == 0 & m == floor(M)/2.0){return aDelta(r, M, m);}
         if (m==1){
@@ -385,7 +392,7 @@ public class MLE {
             double sum4 =      -S_kmn(r, 1, 1, M-3);
             return term1*(sum1 + sum2 + sum3 + sum4);
         }
-        double term1 = binomial(M, m)*(pow(r, -2));
+        double term1 = binomial(M, m)/(pow(r, 2));
         double sum1 =  (pow(M-1, 2))         *S_kmn(r, 2, m+1, M-m-2);
         double sum2 =  (M-1)                 *S_kmn(r, 1, m+1, M-m-2);
         double sum3 =  (2*m*M - 3*m - M + 2) *S_kmn(r, 2, m,   M-m-2);
@@ -450,8 +457,8 @@ public class MLE {
      * @return the sum S_kmn(r) accurate to 9 decimal places.
      * @see <img src="./doc-files/Skmn.png"/>
      */
-    public static double S_kmn(double r, double k, double m, double n){
-        if (Skmn[(int) k][(int) m][(int) n] == -1){
+    public static double S_kmn(double r, int k, int m, int n){
+        if (Skmn[k][m][n] == -1){
             double sum = 0;
             double term = 1;
             int g = 1;
@@ -462,10 +469,38 @@ public class MLE {
                 sum = sum + term;
                 g++;
             }
-            Skmn[(int) k][(int) m][(int) n] = sum;
+            Skmn[k][m][n] = sum;
             return sum;
         }
-        return Skmn[(int) k][(int) m][(int) n];
+        return Skmn[k][m][n];
+    }
+
+    public static double S_kmn_D(double r, int k, int m, int n){
+        if (Skmn[k][m][n] == -1){
+            BigDecimal sum = BigDecimal.ZERO;
+            BigDecimal term = BigDecimal.ONE;
+            BigDecimal g = BigDecimal.ONE;
+            BigDecimal tol = powB(BigDecimal.TEN, -3);
+            while (term.abs().compareTo(tol.multiply(sum.abs())) == 1){ //while abs(term) > tol*abs(sum)
+                BigDecimal rg = powB(BigDecimal.valueOf(r), -g.intValue());
+                BigDecimal inverseRG = BigDecimal.ONE.subtract(rg);
+                term = powB(g, k).multiply(powB(rg, m), mc).multiply(powB(inverseRG, n), mc);
+                //System.out.printf("g = %d; sum = %f %n", g.intValue(), sum.doubleValue());
+                sum = sum.add(term);
+                g = g.add(BigDecimal.ONE);
+            }
+            Skmn[k][m][n] = sum.doubleValue();
+            return sum.doubleValue();
+        }
+        return Skmn[k][m][n];
+    }
+
+    public static BigDecimal powB(BigDecimal base, int exponent){
+        if (exponent < -0){
+            BigDecimal inverse = BigDecimal.ONE.divide(base, mc);
+            return inverse.pow(-exponent);
+        }
+        return base.pow(exponent);
     }
 
     /**
