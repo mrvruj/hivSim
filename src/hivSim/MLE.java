@@ -22,11 +22,11 @@ public class MLE {
     private static int tolerance;
     private static double[][] Binom;
     private static double[][][] Skmn;
-    private static MathContext mc;
+    //private static MathContext mc;
 
-    public static void setMC(){
-        mc = new MathContext(tolerance, RoundingMode.HALF_DOWN);
-    }
+    //public static void setMC(){
+    //    mc = new MathContext(tolerance, RoundingMode.HALF_DOWN);
+    //}
 
     /**
      * Generates a lookup table with default values equal to -1.
@@ -38,16 +38,6 @@ public class MLE {
         for (int i=0; i<=n; i++){
             for (int j = 0; j <= n; j++)
                 Binom[i][j] = -1;
-        }
-    }
-
-    public static void populateSkmn(int k, int m, int n) {
-        Skmn = new double[k+1][m+1][n+1];
-        for (int a = 0; a <= k; a++) {
-            for (int b = 0; b <= m; b++)
-                for (int c = 0; c <= n; c++) {
-                    Skmn[a][b][c] = -1;
-                }
         }
     }
 
@@ -120,9 +110,8 @@ public class MLE {
     public static double rHat(List<Integer> etaTilda, int M, double mu, boolean aTildas){
         List<Double> rValues = rValues(1, 10, 0.1);
         double guess = gridSearch(rValues, mu, M, etaTilda, true);
-        if (guess > 10){ guess = 5;}
-        //List<Double> bounds = goldenBounds(1.0001, 3, mu, M, etaTilda, tolerance);
-        return goldenSection(1.001, guess, 15, M, mu, etaTilda, aTildas);
+        //List<Double> bounds = goldenBounds(1.05, guess*4, mu, M, etaTilda, aTildas);
+        return goldenSection(1.05, guess, guess*4, M, mu, etaTilda, aTildas);
     }
 
     /**
@@ -145,7 +134,7 @@ public class MLE {
         double term, sum = 0;
         if (aTildas){
             for (int m = 2; m <= floor(M/2.0); m++){
-                double muC = mu*aTilda2Prime(rHat, M, m);
+                double muA = mu*aTilda2Prime(rHat, M, m);
                 double eta = etaTilda.get(m-1); //index starts at 0
                 double ddr =     aTildaPrime(rHat, M, m)
                         /aTilda(rHat, M, m);
@@ -153,14 +142,13 @@ public class MLE {
                 double d2dr2 =  aTilda2Prime(rHat, M, m)
                         /aTilda(rHat, M, m);
                 double etaTerm = eta*(ddr2 - d2dr2);
-                if (eta == 0){etaTerm = 0;}
-                term = muC + etaTerm;
+                term = muA + etaTerm;
                 sum = sum + term;
             }
         }
         else {
             for (int m = 2; m <= floor(M/2.0); m++) {
-                double muC = mu * aDelta2Prime(rHat, M, m);
+                double muA = mu * aDelta2Prime(rHat, M, m);
                 double eta = etaTilda.get(m - 1); //index starts at 0
                 double ddr = aDeltaPrime(rHat, M, m)
                         / aDelta(rHat, M, m);
@@ -168,8 +156,7 @@ public class MLE {
                 double d2dr2 = aDelta2Prime(rHat, M, m)
                         / aDelta(rHat, M, m);
                 double etaTerm = eta * (ddr2 - d2dr2);
-                if (eta == 0) { etaTerm = 0;}
-                term = muC + etaTerm;
+                term = muA + etaTerm;
                 sum = sum + term;
             }
         }
@@ -198,6 +185,7 @@ public class MLE {
         if (aTildas){
             for (int m = 2; m <= floor(M/2.0); m++){
                 double aTilda_m = aTilda(r, M, m);
+                System.out.printf("%n A(%f, %d %d) = %f", r, M, m, aTilda_m);
                 sum += -mu*aTilda_m + etaTilda.get(m-1) * log(aTilda_m); //eta uses m-1 because eta[0] is eta_1
             }
         }
@@ -207,6 +195,7 @@ public class MLE {
                 sum += -mu*aDelta_m + etaTilda.get(m-1) * log(aDelta_m); //eta uses m-1 because eta[0] is eta_1
             }
         }
+
         return sum;
     }
 
@@ -319,8 +308,7 @@ public class MLE {
             }
             return M * sum;
         }
-        double result = binomial(M, m) * S_kmn(r, 0, m - 1, M - m);
-        return result; //all other m
+        return binomial(M, m) * S_kmn(r, 0, m - 1, M - m); //all other m
     }
 
     /**
@@ -458,7 +446,7 @@ public class MLE {
      * @see <img src="./doc-files/Skmn.png"/>
      */
     public static double S_kmn(double r, int k, int m, int n){
-        if (Skmn[k][m][n] == -1){
+        //if (Skmn[k][m][n] == -1){
             double sum = 0;
             double term = 1;
             int g = 1;
@@ -469,38 +457,10 @@ public class MLE {
                 sum = sum + term;
                 g++;
             }
-            Skmn[k][m][n] = sum;
+            //Skmn[k][m][n] = sum;
             return sum;
-        }
-        return Skmn[k][m][n];
-    }
-
-    public static double S_kmn_D(double r, int k, int m, int n){
-        if (Skmn[k][m][n] == -1){
-            BigDecimal sum = BigDecimal.ZERO;
-            BigDecimal term = BigDecimal.ONE;
-            BigDecimal g = BigDecimal.ONE;
-            BigDecimal tol = powB(BigDecimal.TEN, -3);
-            while (term.abs().compareTo(tol.multiply(sum.abs())) == 1){ //while abs(term) > tol*abs(sum)
-                BigDecimal rg = powB(BigDecimal.valueOf(r), -g.intValue());
-                BigDecimal inverseRG = BigDecimal.ONE.subtract(rg);
-                term = powB(g, k).multiply(powB(rg, m), mc).multiply(powB(inverseRG, n), mc);
-                //System.out.printf("g = %d; sum = %f %n", g.intValue(), sum.doubleValue());
-                sum = sum.add(term);
-                g = g.add(BigDecimal.ONE);
-            }
-            Skmn[k][m][n] = sum.doubleValue();
-            return sum.doubleValue();
-        }
-        return Skmn[k][m][n];
-    }
-
-    public static BigDecimal powB(BigDecimal base, int exponent){
-        if (exponent < -0){
-            BigDecimal inverse = BigDecimal.ONE.divide(base, mc);
-            return inverse.pow(-exponent);
-        }
-        return base.pow(exponent);
+        //}
+        //return Skmn[k][m][n];
     }
 
     /**
