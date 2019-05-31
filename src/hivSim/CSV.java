@@ -16,8 +16,6 @@ import static java.lang.StrictMath.*;
  * the program. main() will only call methods in this class.
  */
 public class CSV {
-    //TODO: Output random seeds
-    //TODO: Profile program
 
     /**
      * @param i the number of significant figures desired.
