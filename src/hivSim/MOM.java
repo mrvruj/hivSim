@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static hivSim.CSV.rValues;
-import static java.lang.Math.abs;
-import static java.lang.Math.floor;
+import static java.lang.Math.*;
 import static java.lang.StrictMath.pow;
+import static nr.ran.NRUtil.SIGN;
 
 /**
  * Contains methods related to calculating the maximum likelihood estimate and
@@ -44,8 +44,9 @@ public class MOM {
      * @see <img src="./doc-files/rHatMOM.png"/>
      */
     public static double rHat(double mu, int M, List<Integer> etaTilda){
-        double bound = gridSearch(rValues(1, 10, 0.1), mu, M, etaTilda);
-        return goldenSection(1.001, bound, 15, M, mu, etaTilda);
+        double guess = gridSearch(rValues(1, 10, 0.1), mu, M, etaTilda);
+        //List<Double> bounds = goldenBounds(1.05, guess*4, mu, M, etaTilda);
+        return goldenSection(1.05, guess, guess*4, M, mu, etaTilda);
     }
 
     /**
@@ -115,6 +116,72 @@ public class MOM {
         else        {xmin=x2;}
         return xmin;
     }
+
+    /**
+     * Given distinct initial points ax and bx, searches in the downhill
+     * direction (defined by the absolute value of etaSum as evaluated at the
+     * initial points) and returns new points ax, bx, cx that bound the minimum
+     * in a List.
+     *
+     * @param a lower initial bound.
+     * @param b higher initial bound.
+     * @param mu the mean number of mutations per generation.
+     * @param M the number of samples.
+     * @param etaTilda sample frequency spectrum.
+     * @return a List containing bounds to be inputted into a golden-section search.
+     */
+    public static List<Double> goldenBounds(final double a, final double b, double mu, int M, List<Integer> etaTilda) {
+        final double GOLD=1.618034,GLIMIT=100.0,TINY=1.0e-20;
+        double ax,bx,cx,fa,fb,fc;
+        ax=a; bx=b;
+        double fu;
+        fa=abs(etaSum(M, etaTilda) - h(M, a,mu));
+        fb=abs(etaSum(M, etaTilda) - h(M, b,mu));
+        if (fb > fa) {
+            double swap=ax; ax=bx; bx=swap;
+            swap=fb; fb=fa; fa=swap;
+        }
+        cx=bx+GOLD*(bx-ax);
+        fc=abs(etaSum(M, etaTilda) - h(M, cx,mu));
+        while (fb > fc) {
+            double r=(bx-ax)*(fb-fc);
+            double q=(bx-cx)*(fb-fa);
+            double u=bx-((bx-cx)*q-(bx-ax)*r)/
+                    (2.0*SIGN(max(abs(q-r),TINY),q-r));
+            double ulim=bx+GLIMIT*(cx-bx);
+            if ((bx-u)*(u-cx) > 0.0) {
+                fu=abs(etaSum(M, etaTilda) - h(M, u,mu));
+                if (fu < fc) {
+                    ax=bx;
+                    bx=u;
+                    List<Double> bounds = new ArrayList<>();
+                    bounds.add(ax); bounds.add(bx); bounds.add(cx);
+                    return bounds;
+                } else if (fu > fb) {
+                    cx=u;
+                    List<Double> bounds = new ArrayList<>();
+                    bounds.add(ax); bounds.add(bx); bounds.add(cx);
+                    return bounds;
+                }
+                u=cx+GOLD*(cx-bx);
+            } else if ((cx-u)*(u-ulim) > 0.0) {
+                fu=abs(etaSum(M, etaTilda) - h(M, u,mu));
+                if (fu < fc) {
+                    double dum = u+GOLD*(u-cx);
+                    bx=cx; cx=u; u=dum;
+                }
+            } else if ((u-ulim)*(ulim-cx) >= 0.0) {
+                u=ulim;
+            } else {
+                u=cx+GOLD*(cx-bx);
+            }
+            ax=bx; bx=cx; cx=u;
+        }
+        List<Double> bounds = new ArrayList<>();
+        bounds.add(ax); bounds.add(bx); bounds.add(cx);
+        return bounds;
+    }
+
 
     /**
      * Calculates and sums h_m(r) from m = 1 to m = M-2. h_m(r) is the product
