@@ -8,7 +8,6 @@ import static java.lang.Math.max;
 import static java.lang.StrictMath.pow;
 
 //TODO: Add a method remove()
-//TODO: replace etaTilda List with a double[] for cleanliness, i.e. fixing functions using m-1 instead of m
 
 /**
  * An instance represents a tree of Viruses. Each Virus in the VirusTree
@@ -72,9 +71,7 @@ public class VirusTree {
      *
      * @param p the (Virus) founder of a VirusTree.
      * @return the VirusTree object in this VirusTree whose founder is p or
-     *         null if p is not in the VirusTree.
-     *
-     * TODO: Multiple Founders
+     *         null if p is not in the VirusTree. 
      */
     public VirusTree getTree(Virus p) {
         if (founder == p) return this;  //base case
@@ -214,7 +211,7 @@ public class VirusTree {
      * TODO: Multiple Founders - convert foundingVirusTree -> List<VirusTree>
      *  and use for-each to addRandom(). Gonna have to pay attention to the
      *  sort. Maybe use if-statements?
-     *  (if tree1.contains(live.get(0)){tree1.addRandom()}
+     *  (if tree1.contains(live.get(0)){tree1.addRandom()} 
      */
     public static List<VirusTree> phylogenySim(VirusTree foundingVirusTree, int maxVirus, double r0, boolean GammaModel, long randL, Poissondev poisson){
         removeChildren(foundingVirusTree);
@@ -312,7 +309,7 @@ public class VirusTree {
      */
     public static List<Virus> sample(List<VirusTree> live, double M, long randL) {
         List<Virus> sample = new LinkedList<>();
-        Collections.shuffle(live, new Random(randL)); //TODO: Find way to inherit RNG from NR
+        Collections.shuffle(live, new Random(randL)); 
         for (int i = 0; i < M; ++i){
             sample.add(0, live.get(i).getFounder());
         }
