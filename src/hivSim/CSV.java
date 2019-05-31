@@ -42,16 +42,16 @@ public class CSV {
      * @param randL the initial random seed.
      * @param realizations the number of phylogenies to simulate for each r0.
      * @param tolerance the number of significant figures required.
-     * @param cTildas switch controlling whether cTildas or cBars are used in
+     * @param aTildas switch controlling whether aTildas or cBars are used in
      *        likelihood calculations, with true corresponding to cTilda.
      */
-    public static void simulate(int N, double mu, boolean GammaModel, long randL, int realizations, int tolerance, boolean cTildas) throws IOException {
+    public static void simulate(int N, double mu, boolean GammaModel, long randL, int realizations, int tolerance, boolean aTildas) throws IOException {
 
         //initialize
         long runtime = System.currentTimeMillis();
         setTolerance(tolerance);
         long randL_old = randL; //store for output
-        List<Double> rValues = rValues(3, 10, 0.1);
+        List<Double> rValues = rValues(1, 10, 0.1);
         List<Integer> MValues = MValues(8, 1024);
         List<List<List<Double>>> data = MValues.stream().mapToInt(x -> x).<List<List<Double>>>mapToObj(x -> new ArrayList<>()).collect(Collectors.toList()); //make data storage Lists for each M
         populateBinom(MValues.get(MValues.size() - 1)); //set binomial lookup table (array) to appropriate size
@@ -63,7 +63,7 @@ public class CSV {
 
         //calculate
         for (double r0: rValues){
-            populateSkmn(2, 1024, 1024);
+            //populateSkmn(2, 1024, 1024);
             for (int i = 1; i <= realizations; i++){
 
                 System.out.printf("Seconds since last iteration: %f%n", (System.currentTimeMillis() - runtime)/1000.0);
@@ -79,7 +79,7 @@ public class CSV {
                     //etaTilda.add(r0);
                     //NN.appendData(etaTilda, M + "_" + mu);
                     System.out.printf("%d; ", M);
-                    List<Double> calculate = calculate(M, r0, mu, randL, live, Tree, poisson, cTildas);
+                    List<Double> calculate = calculate(M, r0, mu, randL, live, Tree, poisson, aTildas);
                     data.get(MValues.indexOf(M)).add(calculate); //add calculated values to data
                 }
             }
@@ -120,14 +120,14 @@ public class CSV {
      * @param Tree the founding VirusTree. //TODO: Multiple founders
      * @param poisson the inherited Poisson object used to generate a site-
      *        frequency spectrum.
-     * @param cTildas switch controlling whether cTildas or cBars are used in
+     * @param aTildas switch controlling whether aTildas or cBars are used in
      *        likelihood calculations, with true corresponding to cTilda. 
      * @return a List of Doubles which contains, in order, r0, log10 r0, and
      *         data from the MLE, MLE_EM, and MOM. Each method's results
      *         include rHat, log10 rHat, log10 sHat, and a placeholder value
      *         for the sample standard deviation.
      */
-    public static List<Double> calculate(int M, double r0, double mu, long randL, List<VirusTree> live, VirusTree Tree, Poissondev poisson, boolean cTildas){
+    public static List<Double> calculate(int M, double r0, double mu, long randL, List<VirusTree> live, VirusTree Tree, Poissondev poisson, boolean aTildas){
         List<Integer> etaTilda = VirusTree.autoFoldedSFS(live, Tree, M, mu, poisson, randL, 0);
         double failures = etaTilda.get(etaTilda.size() - 1);
         etaTilda.remove(etaTilda.size() - 1);
@@ -135,8 +135,8 @@ public class CSV {
         double log10e = log10(2.718281828459045235360287471); //conversion factor from sd(ln r) to sd(log10 r) is log10(e)
         List<Double> data = new ArrayList<>();
 
-        double r_MLE = MLE.rHat(etaTilda, M, mu, cTildas);
-        double s_hat_MLE = MLE.sigmaHat(r_MLE, M, mu, etaTilda, cTildas);
+        double r_MLE = MLE.rHat(etaTilda, M, mu, aTildas);
+        double s_hat_MLE = MLE.sigmaHat(r_MLE, M, mu, etaTilda, aTildas);
 
         double r_MLE_EM = MLE.rHatEM(M, mu, etaTilda);
         double s_hat_MLE_EM = MLE.sigmaHatEM(r_MLE_EM, M, etaTilda);
