@@ -237,13 +237,13 @@ class TestVirusTree {
 
     @Test
     public void testPhylogenySim(){
-        double r0 = 2.5937424601; double mu = 0.0551; int M = 1024; int maxVirus = 6000; boolean cTildas = true;
+        double r0 = 1.1; double mu = 0.0551; int M = 512; int maxVirus = 6000; boolean cTildas = true;
         long randomLong = 271828182845904523L;
         //long randomLong = System.currentTimeMillis();
         Ran RNG = new Ran(randomLong);
         CSV.setTolerance(6);
-        MLE.populateBinom(1024);
-        MLE.populateSkmn(2, M, M);
+        MLE.populateBinom(M);
+        //MLE.populateSkmn(2, M, M);
 
         Poissondev poisson = new Poissondev(r0, randomLong);
         VirusTree FoundingVirusTree = new VirusTree(new Virus('0', 0));
@@ -286,11 +286,11 @@ class TestVirusTree {
 
     @Test
     public void testATilda(){
-        CSV.setTolerance(9);
+        CSV.setTolerance(6);
         MLE.populateBinom(1024);
-        MLE.populateSkmn(2, 1024, 1024);
-        double x = MLE.aTilda(1.21, 512, 2);
-        System.out.println(x);
+        //MLE.populateSkmn(2, 1024, 1024);
+        long runtime = System.currentTimeMillis();
+        System.out.printf("Runtime: %f%n", (System.currentTimeMillis() - runtime)/1000.0);
     }
 
     @Test
